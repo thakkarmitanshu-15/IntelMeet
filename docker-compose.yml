@@ -1,0 +1,24 @@
+services:
+  backend:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: intellmeet-backend
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    env_file:
+      - ./server/.env
+    environment:
+      CLIENT_URL: http://localhost
+
+  frontend:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: intellmeet-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - backend

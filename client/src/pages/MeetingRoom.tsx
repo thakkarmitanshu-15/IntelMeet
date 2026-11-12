@@ -795,36 +795,38 @@ const MeetingRoom = () => {
         ...(latestMediaStatus ?? {}),
       };
 
-      setRemoteParticipants((current) => {
-        const existing = current.find(
-          (item) => item.socketId === participant.socketId
-        );
+     setRemoteParticipants((current) => {
+  const existing = current.find(
+    (item) => item.socketId === participant.socketId
+  );
 
-        if (existing) {
-          return current.map((item) =>
-            item.socketId === participant.socketId
-              ? {
-                  ...item,
-                  userName: participant.userName,
-                  stream: remoteStream!,
-                  cameraOn: latestParticipant.cameraOn ?? true,
-                  isScreenSharing: latestParticipant.isScreenSharing ?? false,
-                }
-              : item
-          );
-        }
-
-        return [
-          ...current,
-          {
-            socketId: participant.socketId,
+  if (existing) {
+    return current.map((item) =>
+      item.socketId === participant.socketId
+        ? {
+            ...item,
             userName: participant.userName,
             stream: remoteStream!,
+            micOn: latestParticipant.micOn ?? true,
             cameraOn: latestParticipant.cameraOn ?? true,
             isScreenSharing: latestParticipant.isScreenSharing ?? false,
-          },
-        ];
-      });
+          }
+        : item
+    );
+  }
+
+  return [
+    ...current,
+    {
+      socketId: participant.socketId,
+      userName: participant.userName,
+      stream: remoteStream!,
+      micOn: latestParticipant.micOn ?? true,
+      cameraOn: latestParticipant.cameraOn ?? true,
+      isScreenSharing: latestParticipant.isScreenSharing ?? false,
+    },
+  ];
+});
     };
 
    peerConnection.onconnectionstatechange = () => {
@@ -1586,7 +1588,6 @@ window.setTimeout(async () => {
     if (!audioElement) {
       audioElement = document.createElement("audio");
       audioElement.autoplay = true;
-      audioElement.playsInline = true;
       // Keep newly received participant audio aligned with the speaker toggle.
       audioElement.muted = !meetingAudioEnabledRef.current;
       audioElement.volume = 1;
