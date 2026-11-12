@@ -5,12 +5,12 @@ import helmet from "helmet";
 import dotenv from "dotenv";
 import { createServer } from "http";
 import { Server } from "socket.io";
+import jwt from "jsonwebtoken";
 
 import connectDB from "./config/db.js";
 import authRoutes from "./routes/authRoutes.js";
 import meetingRoutes from "./routes/meetingRoutes.js";
 import setupSocket from "./socket/socket.js";
-import jwt from "jsonwebtoken";
 import transcriptionRoutes from "./routes/transcriptionRoutes.js";
 import summaryRoutes from "./routes/summaryRoutes.js";
 import projectRoutes from "./routes/projectRoutes.js";
@@ -24,27 +24,39 @@ const httpServer = createServer(app);
 
 const PORT = process.env.PORT || 5000;
 
-// Allowed frontend origins
 const allowedOrigins = [
   process.env.CLIENT_URL,
+  "https://intellmeet-frontend.onrender.com",
   "http://localhost:5173",
-].filter((origin): origin is string => Boolean(origin));
+].filter((origin): origin is string => Boolean(origin))
+  .map((origin) => origin.replace(/\/$/, ""));
 
-// Shared CORS configuration
 const corsOptions: cors.CorsOptions = {
-  origin: allowedOrigins,
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error(`CORS blocked origin: ${origin}`));
+    }
+  },
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true,
 };
 
-// Socket.IO signaling server
 const io = new Server(httpServer, {
   cors: corsOptions,
 });
 
 app.set("io", io);
 
-// Authenticate every Socket.IO connection using JWT
+// Apply CORS before other middleware and routes
+app.use(cors(corsOptions));
+
+app.use(helmet());
+app.use(express.json());
+
+// Authenticate Socket.IO connections using JWT
 io.use((socket, next) => {
   const token = socket.handshake.auth?.token;
   const secret = process.env.JWT_SECRET;
@@ -63,7 +75,6 @@ io.use((socket, next) => {
     }
 
     socket.data.userId = decoded.userId;
-
     next();
   } catch {
     next(new Error("Invalid or expired token"));
@@ -71,11 +82,6 @@ io.use((socket, next) => {
 });
 
 setupSocket(io);
-
-// Express middleware
-app.use(helmet());
-app.use(cors(corsOptions));
-app.use(express.json());
 
 // API routes
 app.use("/api/auth", authRoutes);
@@ -86,7 +92,7 @@ app.use("/api/projects", projectRoutes);
 app.use("/api/tasks", taskRoutes);
 app.use("/api/notifications", notificationRoutes);
 
-// Health check route
+// Health check
 app.get("/", (_req, res) => {
   res.status(200).json({
     success: true,
@@ -94,7 +100,7 @@ app.get("/", (_req, res) => {
   });
 });
 
-// Socket.IO connection
+// Socket connection logs
 io.on("connection", (socket) => {
   console.log(`Socket connected: ${socket.id}`);
 
@@ -110,9 +116,10 @@ const startServer = async (): Promise<void> => {
 
     httpServer.listen(PORT, () => {
       console.log(`IntellMeet server running on port ${PORT}`);
+      console.log("Allowed CORS origins:", allowedOrigins);
     });
   } catch (error) {
-    console.error("Failed to start IntellMeet server:", error);
+    console.error("Server startup failed:", error);
     process.exit(1);
   }
 };

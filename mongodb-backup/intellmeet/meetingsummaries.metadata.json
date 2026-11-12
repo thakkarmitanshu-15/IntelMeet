@@ -1,0 +1,1 @@
+{"indexes":[{"v":{"$numberInt":"2"},"key":{"_id":{"$numberInt":"1"}},"name":"_id_"},{"v":{"$numberInt":"2"},"key":{"meeting":{"$numberInt":"1"}},"name":"meeting_1"},{"v":{"$numberInt":"2"},"key":{"transcript":{"$numberInt":"1"}},"name":"transcript_1","unique":true}],"uuid":"b824426876e846cd923a85d8b2ace66c","collectionName":"meetingsummaries","type":"collection"}
