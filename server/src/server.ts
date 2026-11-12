@@ -24,36 +24,45 @@ const httpServer = createServer(app);
 
 const PORT = process.env.PORT || 5000;
 
+// Allowed frontend origins
 const allowedOrigins = [
   process.env.CLIENT_URL,
   "https://intellmeet-frontend.onrender.com",
+  "http://localhost:5173",
 ].filter((origin): origin is string => Boolean(origin))
   .map((origin) => origin.replace(/\/$/, ""));
 
+// CORS configuration
 const corsOptions: cors.CorsOptions = {
   origin: (origin, callback) => {
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
-      callback(new Error(`CORS blocked origin: ${origin}`));
+      console.error("CORS blocked origin:", origin);
+      callback(new Error("Origin not allowed by CORS"));
     }
   },
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true,
+  optionsSuccessStatus: 204,
 };
 
+// Express middleware
+app.use(cors(corsOptions));
+
+// Explicitly handle preflight requests (Express 5 compatible)
+app.options(/.*/, cors(corsOptions));
+
+app.use(helmet());
+app.use(express.json());
+
+// Socket.IO signaling server
 const io = new Server(httpServer, {
   cors: corsOptions,
 });
 
 app.set("io", io);
-
-// Apply CORS before other middleware and routes
-app.use(cors(corsOptions));
-
-app.use(helmet());
-app.use(express.json());
 
 // Authenticate Socket.IO connections using JWT
 io.use((socket, next) => {
