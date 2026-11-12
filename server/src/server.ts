@@ -1,12 +1,10 @@
 
-
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import dotenv from "dotenv";
 import { createServer } from "http";
 import { Server } from "socket.io";
-
 
 import connectDB from "./config/db.js";
 import authRoutes from "./routes/authRoutes.js";
@@ -26,14 +24,22 @@ const httpServer = createServer(app);
 
 const PORT = process.env.PORT || 5000;
 
+// Allowed frontend origins
+const allowedOrigins = [
+  process.env.CLIENT_URL,
+  "http://localhost:5173",
+].filter((origin): origin is string => Boolean(origin));
 
+// Shared CORS configuration
+const corsOptions: cors.CorsOptions = {
+  origin: allowedOrigins,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  credentials: true,
+};
 
 // Socket.IO signaling server
 const io = new Server(httpServer, {
-  cors: {
-    origin: process.env.CLIENT_URL || "http://localhost:5173",
-    methods: ["GET", "POST"],
-  },
+  cors: corsOptions,
 });
 
 app.set("io", io);
@@ -56,7 +62,6 @@ io.use((socket, next) => {
       return next(new Error("Invalid authentication token"));
     }
 
-    // Store verified identity on the socket
     socket.data.userId = decoded.userId;
 
     next();
@@ -67,12 +72,12 @@ io.use((socket, next) => {
 
 setupSocket(io);
 
-// Middleware
+// Express middleware
 app.use(helmet());
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(express.json());
 
-// Authentication routes
+// API routes
 app.use("/api/auth", authRoutes);
 app.use("/api/meetings", meetingRoutes);
 app.use("/api/transcriptions", transcriptionRoutes);
@@ -100,16 +105,16 @@ io.on("connection", (socket) => {
 
 // Start server after database connection
 const startServer = async (): Promise<void> => {
-  await connectDB();
+  try {
+    await connectDB();
 
-  httpServer.listen(PORT, () => {
-    console.log(`IntellMeet server running on port ${PORT}`);
-  });
+    httpServer.listen(PORT, () => {
+      console.log(`IntellMeet server running on port ${PORT}`);
+    });
+  } catch (error) {
+    console.error("Failed to start IntellMeet server:", error);
+    process.exit(1);
+  }
 };
 
 startServer();
-
-
-
-
-
