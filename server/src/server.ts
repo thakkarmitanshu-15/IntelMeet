@@ -27,7 +27,7 @@ const PORT = process.env.PORT || 5000;
 // Allowed frontend origins
 const allowedOrigins = [
   process.env.CLIENT_URL,
-  "https://intellmeet-frontend.onrender.com",
+  "https://intelmeet-frontend.onrender.com",
   "http://localhost:5173",
 ].filter((origin): origin is string => Boolean(origin))
   .map((origin) => origin.replace(/\/$/, ""));
